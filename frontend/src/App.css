@@ -1,0 +1,134 @@
+/* Container styles */
+.app-container {
+  margin: 0 auto; /* Center the container */
+  margin-left: 64px; /* Ensure space from the left edge */
+  margin-right: 64px; /* Ensure space from the right edge */
+}
+
+/* Form section */
+.form-section {
+  margin-bottom: 32px; /* Equivalent to mb-8 */
+}
+
+.form-title {
+  font-size: 1.875rem; /* Equivalent to text-3xl */
+  font-weight: 700; /* Equivalent to font-bold */
+  margin-bottom: 16px; /* Equivalent to mb-4 */
+}
+
+.form {
+  margin-bottom: 8px; /* Equivalent to mb-4 */
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Equivalent to grid-cols-2 */
+  gap: 16px; /* Equivalent to gap-4 */
+}
+
+.form-input {
+  border: 1px solid #ccc; /* Equivalent to border */
+  padding: 8px; /* Equivalent to p-2 */
+}
+
+.submit-button {
+  margin-top: 16px; /* Equivalent to mt-4 */
+  background-color: #3b82f6; /* Equivalent to bg-blue-500 */
+  color: white; /* Equivalent to text-white */
+  padding: 8px; /* Equivalent to p-2 */
+  border-radius: 4px; /* Equivalent to rounded */
+}
+
+.error-message {
+  color: #ef4444; /* Equivalent to text-red-500 */
+}
+
+/* Chart section */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Default for small screens */
+  gap: 2px; /* Equivalent to gap-4 */
+}
+
+@media (min-width: 768px) {
+  .chart-grid {
+    grid-template-columns: repeat(2, 1fr); /* Equivalent to md:grid-cols-2 */
+  }
+}
+
+.chart-column {
+  display: flex;
+  flex-direction: column; /* Equivalent to flex-col */
+}
+
+.chart-container {
+  margin-bottom: 16px; /* Equivalent to mb-4 */
+  padding: 4px; /* Equivalent to p-16 */
+}
+
+.chart-title {
+  font-size: 1.5rem; /* Equivalent to text-2xl */
+  font-weight: 600; /* Equivalent to font-semibold */
+  margin-bottom: 8px; /* Equivalent to mb-2 */
+}
+
+/* Table section */
+.table-title {
+  font-size: 1.5rem; /* Equivalent to text-2xl */
+  font-weight: 600; /* Equivalent to font-semibold */
+  margin-bottom: 8px; /* Equivalent to mb-2 */
+}
+
+.table {
+  width: 100%; /* Equivalent to w-full */
+  margin-bottom: 16px; /* Equivalent to mb-4 */
+  border-collapse: collapse; /* Equivalent to table-auto */
+}
+
+.table th,
+.table td {
+  padding: 8px 16px; /* Equivalent to px-4 py-2 */
+}
+
+.table td {
+  border: 1px solid #ccc; /* Equivalent to border */
+}
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
