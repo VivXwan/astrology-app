@@ -1,49 +1,60 @@
 # db.py
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from db_models import Base, Chart, User
-from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError, OperationalError
+from fastapi import HTTPException, Depends
 from passlib.context import CryptContext
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # PostgreSQL connection string (adjust user, host, port if needed)
-DATABASE_URL = "postgresql://postgres:123@localhost:5432/astrologyDB"
+# DATABASE_URL = "postgresql://postgres:123@localhost:5432/astrologyDB"\
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
+
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)  # Create tables if they don’t exist
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def create_user(name: str, email: str, password: str) -> int:
+# Dependency to provide a session
+def get_db() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def create_user(name: str, email: str, password: str, db: Session = Depends(get_db)) -> int:
     """
     Create a new user and return their user_id.
     Raises HTTPException if email already exists.
     """
-    session = SessionLocal()
     try:
         hashed_password = pwd_context.hash(password)
         user = User(name=name, email=email, password_hash=hashed_password)
-        session.add(user)
-        session.commit()
-        user_id = user.user_id
+        db.add(user)
+        db.commit()
+        return user.user_id
     except IntegrityError:  # Email uniqueness violation
-        session.rollback()
+        db.rollback()
         raise HTTPException(status_code=400, detail="Email already exists")
-    except Exception as e:
-        session.rollback()
-        raise e
-    finally:
-        session.close()
-    return user_id
+    except OperationalError as e:
+        db.rollback()
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
 
-def get_user_by_email(email: str) -> int:
+def get_user_by_email(email: str, db: Session = Depends(get_db)) -> int:
     """
     Retrieve user_id by email. Returns None if not found.
     """
-    session = SessionLocal()
     try:
-        user = session.query(User).filter(User.email == email).first()
+        user = db.query(User).filter(User.email == email).first()
         if user:
             return {
                 "user_id": user.user_id,
@@ -52,35 +63,32 @@ def get_user_by_email(email: str) -> int:
                 "password_hash": user.password_hash
             }
         return None
-    except Exception as e:
-        raise e
-    finally:
-        session.close()
+    except OperationalError as e:
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
 
-def save_chart(birth_data: dict, result: dict, user_id: int = None) -> int:
+def save_chart(birth_data: dict, result: dict, user_id: int = None, db: Session = Depends(get_db)) -> int:
     """
     Save a chart to the database and return its chart_id.
     """
-    session = SessionLocal()
     try:
         chart = Chart(birth_data=birth_data, result=result, user_id=user_id)
-        session.add(chart)
-        session.commit()
+        db.add(chart)
+        db.commit()
         chart_id = chart.chart_id
-    except Exception as e:
-        session.rollback()
-        raise e
-    finally:
-        session.close()
-    return chart_id
+        return chart_id
+    except OperationalError as e:
+        db.rollback()
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Invalid chart data: {str(e)}")
 
-def get_chart(chart_id: int) -> dict:
+def get_chart(chart_id: int, db: Session = Depends(get_db)) -> dict:
     """
     Retrieve a chart by its chart_id.
     """
-    session = SessionLocal()
     try:
-        chart = session.query(Chart).filter(Chart.chart_id == chart_id).first()
+        chart = db.query(Chart).filter(Chart.chart_id == chart_id).first()
         if chart:
             return {
                 "chart_id": chart.chart_id,
@@ -90,7 +98,5 @@ def get_chart(chart_id: int) -> dict:
                 "created_at": chart.created_at.isoformat()
             }
         return None
-    except Exception as e:
-        raise e
-    finally:
-        session.close()
+    except OperationalError as e:
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")

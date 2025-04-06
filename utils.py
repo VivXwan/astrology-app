@@ -3,6 +3,7 @@ from fastapi import HTTPException
 import swisseph as swe
 from typing import Optional
 from constants import AYANAMSA_TYPES
+from models import BirthData
 
 swe.set_ephe_path('./ephe')
 
@@ -24,4 +25,22 @@ def get_ayanamsa_value(jd: float, ayanamsa_type: Optional[str]) -> float:
     else:
         raise HTTPException(status_code=400, detail=f"Invalid Ayanamsa type: {ayanamsa_type}")
     
-def raise_(e): raise e
+def sanitize_birth_data(data: BirthData, tz_offset: float) -> BirthData:
+    """
+    Sanitize BirthData inputs, ensuring logical consistency and safe values.
+    """
+    try:
+        # Ensure tz_offset is reasonable (typically -12 to 14)
+        if not -12 <= tz_offset <= 14:
+            raise ValueError("Timezone offset must be between -12 and 14 hours")
+        tz_offset = round(tz_offset, 2)
+
+        # Adjust hour and minute with tz_offset to check feasibility
+        adjusted_hour = data.hour + tz_offset
+        if adjusted_hour < 0 or adjusted_hour >= 24:
+            raise ValueError(f"Hour {data.hour} with timezone offset {tz_offset} results in invalid time")
+
+        # Return sanitized BirthData (Pydantic already rounded fields)
+        return data
+    except ValueError as e:
+        raise ValueError(f"Birth data sanitization failed: {str(e)}")

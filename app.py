@@ -7,11 +7,12 @@ import os
 from typing import Dict, Optional
 from datetime import datetime, timedelta
 from models import BirthData, UserData, LoginData, TokenResponse
-from services import calculate_kundali, calculate_navamsa, calculate_vimshottari_dasha, calculate_transits, calculate_hora, calculate_drekkana, calculate_saptamsa, calculate_dwadasamsa, calculate_trimsamsa, calculate_sthana_bala, calculate_dig_bala
-from db import save_chart, get_chart, create_user, get_user_by_email
+from services.chart import generate_chart
+from db import save_chart, get_chart, create_user, get_user_by_email, get_db
 from passlib.context import CryptContext
 import jwt
-from jwt import PyJWTError
+from jwt import PyJWTError, DecodeError, ExpiredSignatureError
+from sqlalchemy.orm import Session
 
 load_dotenv()
 app = FastAPI(title="Astrology Chart API", description="Vedic astrology charts with True Chitrapaksha Ayanamsa and timezone support", version="0.1.0")
@@ -25,7 +26,9 @@ app.add_middleware(
 )
 
 # JWT settings
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")  # Set in .env
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -42,8 +45,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    try:
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        return encoded_jwt
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=f"Token creation failed: {str(e)}")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     if not token:
@@ -59,13 +65,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         if user_id is None:
             raise credentials_exception
         return int(user_id)
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired", headers={"WWW-Authenticate": "Bearer"})
+    except DecodeError:
+        raise HTTPException(status_code=401, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
     except PyJWTError:
         raise credentials_exception
 
 @app.post("/users", response_model=Dict)
-async def create_new_user(user: UserData):
+async def create_new_user(user: UserData, db: Session = Depends(get_db)):
     try:
-        user_id = create_user(user.name, user.email, user.password)
+        user_id = create_user(user.name, user.email, user.password, db)
         return {"user_id": user_id, "name": user.name, "email": user.email}
     except HTTPException as e:
         raise e
@@ -73,8 +83,8 @@ async def create_new_user(user: UserData):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/login", response_model=TokenResponse)
-async def login_for_access_token(form_data: LoginData):
-    user = get_user_by_email(form_data.email)
+async def login_for_access_token(form_data: LoginData, db: Session = Depends(get_db)):
+    user = get_user_by_email(form_data.email, db)
     if not user or not pwd_context.verify(form_data.password, user["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -93,54 +103,23 @@ async def get_charts(
     tz_offset: float = 5.5,
     transit_date: Optional[datetime] = None,
     ayanamsa_type: Optional[str] = None,
-    current_user: int = Depends(get_current_user)
+    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     try:
-        # Calculate Kundali, Navamsa, and Dasha
-        kundali = calculate_kundali(data, tz_offset, ayanamsa_type)
-        D2_hora = calculate_hora(kundali)
-        D3_drekkana = calculate_drekkana(kundali)
-        D7_saptamsa = calculate_saptamsa(kundali)
-        D9_navamsa = calculate_navamsa(kundali)
-        D12_dwadasamsa = calculate_dwadasamsa(kundali)
-        D30_trimsamsa = calculate_trimsamsa(kundali)
-        dasha = calculate_vimshottari_dasha(data, kundali["planets"]["Moon"])
-        transits = calculate_transits(data, tz_offset, transit_date, ayanamsa_type)
-        sthana_bala = calculate_sthana_bala(kundali, D2_hora, D3_drekkana, D7_saptamsa, D9_navamsa, D12_dwadasamsa, D30_trimsamsa)
-        dig_bala = calculate_dig_bala(kundali)
-
-        birth_data = data.dict()
-        birth_data["tz_offset"] = tz_offset
-        birth_data["ayanamsa_type"] = ayanamsa_type
-
-        result = {
-            "kundali": kundali,
-            "vimshottari_dasha": dasha,
-            "transits": transits,
-            "vargas": {
-                "D-2": D2_hora,
-                "D-3": D3_drekkana,
-                "D-7": D7_saptamsa,
-                "D-9": D9_navamsa,
-                "D-12": D12_dwadasamsa,
-                "D-30": D30_trimsamsa
-            },
-            "sthana_bala": sthana_bala,
-            "dig_bala": dig_bala
-        }
-
-        chart_id = save_chart(birth_data, result, current_user)
-        result["chart_id"] = chart_id
-        result["user_id"] = current_user
-
+        result = generate_chart(data, tz_offset, transit_date, ayanamsa_type, current_user, db)
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Chart generation failed: {str(e)}")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.get("/charts/{chart_id}", response_model=Dict)
-async def get_chart_by_id(chart_id: int, current_user: int = Depends(get_current_user)):
+async def get_chart_by_id(chart_id: int, current_user: int = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        chart = get_chart(chart_id)
+        chart = get_chart(chart_id, db)
         if not chart:
             raise HTTPException(status_code=404, detail="Chart not found")
         
