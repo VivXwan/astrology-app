@@ -19,7 +19,7 @@ app = FastAPI(title="Astrology Chart API", description="Vedic astrology charts w
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],  # Allow all localhost ports
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
