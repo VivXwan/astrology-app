@@ -88,3 +88,10 @@ class LoginData(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+class GeocodeRequest(BaseModel):
+    query: str
+
+class GeocodeResponse(BaseModel):
+    latitude: float
+    longitude: float

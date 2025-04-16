@@ -4,15 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 import os
+import httpx
 from typing import Dict, Optional
 from datetime import datetime, timedelta
-from models import BirthData, UserData, LoginData, TokenResponse
+from models import BirthData, UserData, LoginData, TokenResponse, GeocodeRequest, GeocodeResponse
 from services.chart import generate_chart
 from db import save_chart, get_chart, create_user, get_user_by_email, get_db
 from passlib.context import CryptContext
 import jwt
 from jwt import PyJWTError, DecodeError, ExpiredSignatureError
 from sqlalchemy.orm import Session
+import redis.asyncio as redis
 
 load_dotenv()
 app = FastAPI(title="Astrology Chart API", description="Vedic astrology charts with True Chitrapaksha Ayanamsa and timezone support", version="0.1.0")
@@ -37,6 +39,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme for token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
+
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -130,6 +134,37 @@ async def get_chart_by_id(chart_id: int, current_user: int = Depends(get_current
         return chart
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@app.post("/geocode", response_model=GeocodeResponse)
+async def geocode_location(request: GeocodeRequest):
+    query = request.query.strip()
+    
+    # cached = await redis_client.get(query)
+    # if cached:
+        # return json.loads(cached)
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            # Nominatim API request
+            url = f"https://nominatim.openstreetmap.org/search?q={query}&format=json&limit=1"
+            headers = {"User-Agent": "VedicAstrologyApp/1.0"}
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            
+            if not data:
+                raise HTTPException(status_code=404, detail="Location not found")
+            
+            latitude = float(data[0]["lat"])
+            longitude = float(data[0]["lon"])
+            
+            # Cache the result
+            # await redis_client.setex(query, 2592000, json.dumps({"latitude": latitude, "longitude": longitude}))
+            return {"latitude": latitude, "longitude": longitude}
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=400, detail=f"Geocoding failed: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Geocoding error: {str(e)}")
 
 @app.get("/health")
 async def health_check():
