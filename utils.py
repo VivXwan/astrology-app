@@ -4,6 +4,7 @@ import swisseph as swe
 from typing import Optional
 from constants import AYANAMSA_TYPES
 from models import BirthData
+from datetime import datetime, timedelta
 
 swe.set_ephe_path('./ephe')
 
@@ -28,6 +29,7 @@ def get_ayanamsa_value(jd: float, ayanamsa_type: Optional[str]) -> float:
 def sanitize_birth_data(data: BirthData, tz_offset: float) -> BirthData:
     """
     Sanitize BirthData inputs, ensuring logical consistency and safe values.
+    Handles timezone transitions properly using datetime.
     """
     try:
         # Ensure tz_offset is reasonable (typically -12 to 14)
@@ -35,12 +37,25 @@ def sanitize_birth_data(data: BirthData, tz_offset: float) -> BirthData:
             raise ValueError("Timezone offset must be between -12 and 14 hours")
         tz_offset = round(tz_offset, 2)
 
-        # Adjust hour and minute with tz_offset to check feasibility
-        adjusted_time = data.hour + data.minute / 60.0 - tz_offset
-        if adjusted_time < 0 or adjusted_time >= 24:
-            raise ValueError(f"Time {data.hour}:{data.minute} with timezone offset {tz_offset} results in invalid time")
+        # Create datetime object for the local time
+        local_dt = datetime(
+            year=data.year,
+            month=data.month,
+            day=data.day,
+            hour=int(data.hour),
+            minute=int(data.minute)
+        )
 
-        # Return sanitized BirthData (Pydantic already rounded fields)
+        # Convert to UTC by subtracting the timezone offset
+        utc_dt = local_dt - timedelta(hours=tz_offset)
+
+        # Update the BirthData with UTC values
+        data.year = utc_dt.year
+        data.month = utc_dt.month
+        data.day = utc_dt.day
+        data.hour = utc_dt.hour
+        data.minute = float(utc_dt.minute)
+
         return data
     except ValueError as e:
         raise ValueError(f"Birth data sanitization failed: {str(e)}")

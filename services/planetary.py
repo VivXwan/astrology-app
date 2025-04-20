@@ -1,6 +1,6 @@
 import swisseph as swe
 from typing import Dict, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from models import BirthData
 from constants import ZODIAC_SIGNS, NAKSHATRAS, NAKSHATRA_SPAN, NAKSHATRA_PADA_SPAN
 from utils import decimal_to_dms, get_ayanamsa_value
@@ -98,9 +98,9 @@ def calculate_planet_positions(data: BirthData, jd: float, ayanamsa: float, ayan
         raise ValueError(f"Unexpected error in position calculation: {str(e)}")
 
 def calculate_kundali(data: BirthData, tz_offset: float, ayanamsa_type: Optional[str]) -> Dict:
-
     try:
-        jd = swe.julday(data.year, data.month, data.day, data.hour + data.minute / 60.0 - tz_offset)
+        # Use UTC time directly since sanitize_birth_data already converted it
+        jd = swe.julday(data.year, data.month, data.day, data.hour + data.minute / 60.0)
         ayanamsa = get_ayanamsa_value(jd, ayanamsa_type)
         
         # Calculate planetary positions
@@ -116,12 +116,15 @@ def calculate_kundali(data: BirthData, tz_offset: float, ayanamsa_type: Optional
 
 def calculate_transits(data: BirthData, tz_offset: float, date_time: Optional[datetime] = None, ayanamsa_type: Optional[str] = None) -> Dict:
     if date_time is None:
-        date_time = datetime.now(timezone.utc)  # Use UTC for consistency with Swiss Ephemeris
+        date_time = datetime.now(timezone.utc)  # Use UTC for consistency
+    else:
+        # Convert transit_date to UTC if it's not
+        date_time = date_time - timedelta(hours=tz_offset)
 
-    # Compute Julian Day for the given date/time
+    # Compute Julian Day for the UTC time
     try:
         jd = swe.julday(date_time.year, date_time.month, date_time.day, 
-                        date_time.hour + date_time.minute / 60.0 + date_time.second / 3600.0 - tz_offset)
+                       date_time.hour + date_time.minute / 60.0 + date_time.second / 3600.0)
         ayanamsa = get_ayanamsa_value(jd, ayanamsa_type)
 
         # Calculate planetary positions

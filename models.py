@@ -95,3 +95,11 @@ class GeocodeRequest(BaseModel):
 class GeocodeResponse(BaseModel):
     latitude: float
     longitude: float
+    display_name: str
+    place_id: int
+    osm_type: str
+    osm_id: int
+    type: str
+    class_type: str
+    importance: float
+    address: dict
