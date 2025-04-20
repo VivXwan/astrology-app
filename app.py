@@ -104,7 +104,7 @@ async def login_for_access_token(form_data: LoginData, db: Session = Depends(get
 @app.post("/charts", response_model=Dict)
 async def get_charts(
     data: BirthData,
-    tz_offset: float = 5.5,
+    tz_offset: Optional[float] = 5.5,
     transit_date: Optional[datetime] = None,
     ayanamsa_type: Optional[str] = None,
     current_user: int = Depends(get_current_user),

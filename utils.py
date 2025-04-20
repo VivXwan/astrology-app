@@ -36,9 +36,9 @@ def sanitize_birth_data(data: BirthData, tz_offset: float) -> BirthData:
         tz_offset = round(tz_offset, 2)
 
         # Adjust hour and minute with tz_offset to check feasibility
-        adjusted_hour = data.hour + tz_offset
-        if adjusted_hour < 0 or adjusted_hour >= 24:
-            raise ValueError(f"Hour {data.hour} with timezone offset {tz_offset} results in invalid time")
+        adjusted_time = data.hour + data.minute / 60.0 - tz_offset
+        if adjusted_time < 0 or adjusted_time >= 24:
+            raise ValueError(f"Time {data.hour}:{data.minute} with timezone offset {tz_offset} results in invalid time")
 
         # Return sanitized BirthData (Pydantic already rounded fields)
         return data

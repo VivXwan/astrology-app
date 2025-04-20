@@ -57,7 +57,8 @@ def generate_chart(data: BirthData, tz_offset: float, transit_date: Optional[dat
                 "D-30": D30_trimsamsa
             },
             "sthana_bala": sthana_bala,
-            "dig_bala": dig_bala
+            "dig_bala": dig_bala,
+            "birth_data": birth_data
         }
 
         # Save to database and attach chart_id and user_id
