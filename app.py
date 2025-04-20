@@ -141,8 +141,8 @@ async def geocode_location(request: GeocodeRequest):
     
     try:
         async with httpx.AsyncClient() as client:
-            # Nominatim API request with detailed address data
-            url = f"https://nominatim.openstreetmap.org/search?q={query}&format=json&limit=1&addressdetails=1"
+            # Nominatim API request with detailed address data, limit 5 results
+            url = f"https://nominatim.openstreetmap.org/search?q={query}&format=json&limit=5&addressdetails=1"
             headers = {"User-Agent": "VedicAstrologyApp/1.0"}
             response = await client.get(url, headers=headers)
             response.raise_for_status()
@@ -151,19 +151,30 @@ async def geocode_location(request: GeocodeRequest):
             if not data:
                 raise HTTPException(status_code=404, detail="Location not found")
             
-            location = data[0]
+            # Sort locations by importance score (highest first)
+            locations = sorted(data, key=lambda x: float(x.get("importance", 0)), reverse=True)
+            
+            # Convert locations to LocationData format
+            location_results = []
+            for location in locations:
+                location_results.append({
+                    "latitude": float(location["lat"]),
+                    "longitude": float(location["lon"]),
+                    "display_name": location["display_name"],
+                    "place_id": location["place_id"],
+                    "osm_type": location["osm_type"],
+                    "osm_id": location["osm_id"],
+                    "type": location["type"],
+                    "class_type": location["class"],
+                    "importance": float(location.get("importance", 0.0)),
+                    "address": location.get("address", {})
+                })
+            
             return {
-                "latitude": float(location["lat"]),
-                "longitude": float(location["lon"]),
-                "display_name": location["display_name"],
-                "place_id": location["place_id"],
-                "osm_type": location["osm_type"],
-                "osm_id": location["osm_id"],
-                "type": location["type"],
-                "class_type": location["class"],
-                "importance": float(location.get("importance", 0.0)),
-                "address": location.get("address", {})
+                "locations": location_results,
+                "total_results": len(location_results)
             }
+            
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=400, detail=f"Geocoding failed: {str(e)}")
     except Exception as e:

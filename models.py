@@ -11,19 +11,6 @@ class BirthData(BaseModel):
     latitude: float
     longitude: float
 
-    # @validator('month')
-    # def validate_month(cls, v): return v if 1 <= v <= 12 else raise_(ValueError("Month 1-12"))
-    # @validator('day')
-    # def validate_day(cls, v): return v if 1 <= v <= 31 else raise_(ValueError("Day 1-31"))
-    # @validator('hour')
-    # def validate_hour(cls, v): return v if 0 <= v < 24 else raise_(ValueError("Hour 0-23.99"))
-    # @validator('minute')
-    # def validate_minute(cls, v): return v if 0 <= v < 60 else raise_(ValueError("Minute 0-59.99"))
-    # @validator('latitude')
-    # def validate_latitude(cls, v): return v if -90 <= v <= 90 else raise_(ValueError("Latitude -90 to 90"))
-    # @validator('longitude')
-    # def validate_longitude(cls, v): return v if -180 <= v <= 180 else raise_(ValueError("Longitude -180 to 180"))
-
     @validator('month', pre=True)
     def validate_month(cls, v):
         if not isinstance(v, int) or not 1 <= v <= 12:
@@ -89,10 +76,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-class GeocodeRequest(BaseModel):
-    query: str
-
-class GeocodeResponse(BaseModel):
+class LocationData(BaseModel):
     latitude: float
     longitude: float
     display_name: str
@@ -103,3 +87,10 @@ class GeocodeResponse(BaseModel):
     class_type: str
     importance: float
     address: dict
+
+class GeocodeRequest(BaseModel):
+    query: str
+
+class GeocodeResponse(BaseModel):
+    locations: list[LocationData]
+    total_results: int
