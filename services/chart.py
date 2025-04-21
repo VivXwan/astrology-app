@@ -18,31 +18,33 @@ def generate_chart(data: BirthData, tz_offset: float, transit_date: Optional[dat
     Generate a complete astrological chart with kundali, divisional charts, dasha, transits, and bala.
     """
     try:
-        sanitized_data = sanitize_birth_data(data, tz_offset)
+        # Get both original and UTC-converted data
+        birth_data_result = sanitize_birth_data(data, tz_offset)
+        original_data = birth_data_result["original"]
+        utc_data = birth_data_result["utc"]
 
         # Handle optional transit_date
         if transit_date is not None and (transit_date.year < 1 or transit_date.year > 9999):
             raise ValueError("Transit date year must be between 1 and 9999")
         
-        # Calculate all components
-        kundali = calculate_kundali(sanitized_data, tz_offset, ayanamsa_type)
+        # Calculate all components using UTC data
+        kundali = calculate_kundali(utc_data, tz_offset, ayanamsa_type)
         D2_hora = calculate_hora(kundali)
         D3_drekkana = calculate_drekkana(kundali)
         D7_saptamsa = calculate_saptamsa(kundali)
         D9_navamsa = calculate_navamsa(kundali)
         D12_dwadasamsa = calculate_dwadasamsa(kundali)
         D30_trimsamsa = calculate_trimsamsa(kundali)
-        dasha = calculate_vimshottari_dasha(sanitized_data, kundali["planets"]["Moon"])
-        transits = calculate_transits(sanitized_data, tz_offset, transit_date, ayanamsa_type)
-        sthana_bala = calculate_sthana_bala(kundali, D2_hora, D3_drekkana, D7_saptamsa, 
-                                            D9_navamsa, D12_dwadasamsa, D30_trimsamsa)
+        dasha = calculate_vimshottari_dasha(utc_data, kundali["planets"]["Moon"])
+        transits = calculate_transits(utc_data, tz_offset, transit_date, ayanamsa_type)
+        sthana_bala = calculate_sthana_bala(kundali, D2_hora, D3_drekkana, D7_saptamsa, D9_navamsa, D12_dwadasamsa, D30_trimsamsa)
         dig_bala = calculate_dig_bala(kundali)
 
-        # Prepare birth data for storage
-        birth_data = sanitized_data.dict()
+        # Prepare birth data for storage (using original data)
+        birth_data = original_data.dict()
         birth_data["tz_offset"] = tz_offset
         birth_data["ayanamsa_type"] = ayanamsa_type
-
+        
         # Structure the result
         result = {
             "kundali": kundali,

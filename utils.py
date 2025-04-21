@@ -26,16 +26,20 @@ def get_ayanamsa_value(jd: float, ayanamsa_type: Optional[str]) -> float:
     else:
         raise HTTPException(status_code=400, detail=f"Invalid Ayanamsa type: {ayanamsa_type}")
     
-def sanitize_birth_data(data: BirthData, tz_offset: float) -> BirthData:
+def sanitize_birth_data(data: BirthData, tz_offset: float) -> dict:
     """
     Sanitize BirthData inputs, ensuring logical consistency and safe values.
     Handles timezone transitions properly using datetime.
+    Returns a dictionary with both original and UTC-converted data.
     """
     try:
         # Ensure tz_offset is reasonable (typically -12 to 14)
         if not -12 <= tz_offset <= 14:
             raise ValueError("Timezone offset must be between -12 and 14 hours")
         tz_offset = round(tz_offset, 2)
+
+        # Create a copy of the original data
+        original_data = data.dict()
 
         # Create datetime object for the local time
         local_dt = datetime(
@@ -49,13 +53,21 @@ def sanitize_birth_data(data: BirthData, tz_offset: float) -> BirthData:
         # Convert to UTC by subtracting the timezone offset
         utc_dt = local_dt - timedelta(hours=tz_offset)
 
-        # Update the BirthData with UTC values
-        data.year = utc_dt.year
-        data.month = utc_dt.month
-        data.day = utc_dt.day
-        data.hour = utc_dt.hour
-        data.minute = float(utc_dt.minute)
+        # Create a new BirthData object with UTC values
+        utc_data = BirthData(
+            year=utc_dt.year,
+            month=utc_dt.month,
+            day=utc_dt.day,
+            hour=utc_dt.hour + (utc_dt.minute / 60.0),
+            minute=float(utc_dt.minute),
+            latitude=data.latitude,
+            longitude=data.longitude
+        )
 
-        return data
+        return {
+            "original": data,
+            "utc": utc_data,
+            "tz_offset": tz_offset
+        }
     except ValueError as e:
         raise ValueError(f"Birth data sanitization failed: {str(e)}")
