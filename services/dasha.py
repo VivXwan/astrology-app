@@ -51,7 +51,6 @@ def calculate_vimshottari_dasha(birth_data: BirthData, moon_data: Dict) -> list:
                 "planet": planet,
                 "start_date": current_date.strftime("%Y-%m-%d"),
                 "end_date": end_date.strftime("%Y-%m-%d"),
-                "duration_years": round(duration, 2),
                 "antardashas": []
             }
             
@@ -73,8 +72,7 @@ def calculate_vimshottari_dasha(birth_data: BirthData, moon_data: Dict) -> list:
                     antardasha_pratyantar.append({
                         "planet": pratyantar_planet,
                         "start_date": pratyantar_start.strftime("%Y-%m-%d"),
-                        "end_date": pratyantar_end.strftime("%Y-%m-%d"),
-                        "duration_days": round(pratyantar_days, 2)
+                        "end_date": pratyantar_end.strftime("%Y-%m-%d")
                     })
                     pratyantar_start = pratyantar_end
 
@@ -82,7 +80,6 @@ def calculate_vimshottari_dasha(birth_data: BirthData, moon_data: Dict) -> list:
                     "planet": antardasha_planet,
                     "start_date": antardasha_start.strftime("%Y-%m-%d"),
                     "end_date": antardasha_end.strftime("%Y-%m-%d"),
-                    "duration_years": round(antardasha_years, 2),
                     "pratyantar_dashas": antardasha_pratyantar
                 })
                 antardasha_start = antardasha_end
