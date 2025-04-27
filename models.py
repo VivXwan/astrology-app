@@ -8,6 +8,7 @@ class BirthData(BaseModel):
     day: int
     hour: float
     minute: float
+    second: float = 0.0  # Default to 0 if not provided
     latitude: float
     longitude: float
 
@@ -30,25 +31,31 @@ class BirthData(BaseModel):
             raise ValueError(f"Day {v} is invalid for month {month} and year {year}")
 
     @validator('hour', pre=True)
-    def sanitize_hour(cls, v):
+    def validate_hour(cls, v):
         if not isinstance(v, (int, float)) or v < 0 or v >= 24:
             raise ValueError("Hour must be a number between 0 and 23.99")
         return round(float(v), 2)  # Round to 2 decimal places
 
     @validator('minute', pre=True)
-    def sanitize_minute(cls, v):
+    def validate_minute(cls, v):
         if not isinstance(v, (int, float)) or v < 0 or v >= 60:
             raise ValueError("Minute must be a number between 0 and 59.99")
         return round(float(v), 2)  # Round to 2 decimal places
 
+    @validator('second', pre=True)
+    def validate_second(cls, v):
+        if not isinstance(v, (int, float)) or v < 0 or v >= 60:
+            raise ValueError("Second must be a number between 0 and 59.99")
+        return round(float(v), 2)  # Round to 2 decimal places
+
     @validator('latitude', pre=True)
-    def sanitize_latitude(cls, v):
+    def validate_latitude(cls, v):
         if not isinstance(v, (int, float)) or v < -90 or v > 90:
             raise ValueError("Latitude must be a number between -90 and 90")
         return round(float(v), 6)  # Round to 6 decimal places for precision
 
     @validator('longitude', pre=True)
-    def sanitize_longitude(cls, v):
+    def validate_longitude(cls, v):
         if not isinstance(v, (int, float)) or v < -180 or v > 180:
             raise ValueError("Longitude must be a number between -180 and 180")
         return round(float(v), 6)  # Round to 6 decimal places for precision

@@ -5,6 +5,8 @@ from typing import Optional
 from constants import AYANAMSA_TYPES
 from models import BirthData
 from datetime import datetime, timedelta
+from timezonefinder import TimezoneFinder
+import pytz
 
 swe.set_ephe_path('./ephe')
 
@@ -47,7 +49,8 @@ def sanitize_birth_data(data: BirthData, tz_offset: float) -> dict:
             month=data.month,
             day=data.day,
             hour=int(data.hour),
-            minute=int(data.minute)
+            minute=int(data.minute),
+            second=int(data.second)
         )
 
         # Convert to UTC by subtracting the timezone offset
@@ -58,8 +61,9 @@ def sanitize_birth_data(data: BirthData, tz_offset: float) -> dict:
             year=utc_dt.year,
             month=utc_dt.month,
             day=utc_dt.day,
-            hour=utc_dt.hour + (utc_dt.minute / 60.0),
+            hour=utc_dt.hour,
             minute=float(utc_dt.minute),
+            second=float(utc_dt.second),
             latitude=data.latitude,
             longitude=data.longitude
         )
@@ -71,3 +75,25 @@ def sanitize_birth_data(data: BirthData, tz_offset: float) -> dict:
         }
     except ValueError as e:
         raise ValueError(f"Birth data sanitization failed: {str(e)}")
+
+def get_timezone_offset(latitude: float, longitude: float) -> float:
+    """
+    Get timezone offset in hours from coordinates.
+    Returns the offset in hours (e.g., 5.5 for IST).
+    """
+    try:
+        tf = TimezoneFinder()
+        timezone_str = tf.timezone_at(lat=latitude, lng=longitude)
+        # print(f"Found timezone string: {timezone_str}")
+        
+        if timezone_str:
+            tz = pytz.timezone(timezone_str)
+            # Get offset for current date to handle DST
+            offset = tz.utcoffset(datetime.now()).total_seconds() / 3600
+            # print(f"Calculated offset: {offset} hours")
+            return round(offset, 2)
+        # print(f"Warning: No timezone found for coordinates ({latitude}, {longitude})")
+        return 0.0  # Default to UTC if timezone not found
+    except Exception as e:
+        print(f"Error getting timezone: {str(e)}")
+        return 0.0  # Default to UTC on error

@@ -15,6 +15,7 @@ import jwt
 from jwt import PyJWTError, DecodeError, ExpiredSignatureError
 from sqlalchemy.orm import Session
 import redis.asyncio as redis
+from utils import get_timezone_offset
 
 load_dotenv()
 app = FastAPI(title="Astrology Chart API", description="Vedic astrology charts with True Chitrapaksha Ayanamsa and timezone support", version="0.1.0")
@@ -104,20 +105,28 @@ async def login_for_access_token(form_data: LoginData, db: Session = Depends(get
 @app.post("/charts", response_model=Dict)
 async def get_charts(
     data: BirthData,
-    tz_offset: Optional[float] = 5.5,
+    tz_offset: Optional[float] = None,
     transit_date: Optional[datetime] = None,
     ayanamsa_type: Optional[str] = None,
     current_user: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
+        # print(f"Received chart request with coordinates: ({data.latitude}, {data.longitude})")
+        
+        # If tz_offset is not provided, calculate it from coordinates
+        if tz_offset is None:
+            tz_offset = get_timezone_offset(data.latitude, data.longitude)
+            
         result = generate_chart(data, tz_offset, transit_date, ayanamsa_type, current_user, db)
         return result
     except ValueError as e:
+        print(f"ValueError in chart generation: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Chart generation failed: {str(e)}")
     except HTTPException as e:
         raise e
     except Exception as e:
+        print(f"Unexpected error in chart generation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.get("/charts/{chart_id}", response_model=Dict)

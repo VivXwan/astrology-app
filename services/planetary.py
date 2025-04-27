@@ -98,43 +98,47 @@ def calculate_planet_positions(data: BirthData, jd: float, ayanamsa: float, ayan
         raise ValueError(f"Unexpected error in position calculation: {str(e)}")
 
 def calculate_kundali(data: BirthData, tz_offset: float, ayanamsa_type: Optional[str]) -> Dict:
+    """Calculate the birth chart (Kundali) with planetary positions."""
     try:
-        # Use UTC time directly since sanitize_birth_data already converted it
-        jd = swe.julday(data.year, data.month, data.day, data.hour + data.minute / 60.0)
+        # Convert birth time to Julian Day
+        jd = swe.julday(data.year, data.month, data.day, 
+                       data.hour + data.minute / 60.0 + data.second / 3600.0)
+        
+        # Get ayanamsa value
         ayanamsa = get_ayanamsa_value(jd, ayanamsa_type)
         
         # Calculate planetary positions
         kundali = calculate_planet_positions(data, jd, ayanamsa, ayanamsa_type)
         
+        # Add timezone offset to result
         kundali["tz_offset"] = tz_offset
         
         return kundali
-    except ValueError as e:
-        raise ValueError(f"Kundali calculation failed: {str(e)}")
     except Exception as e:
-        raise ValueError(f"Unexpected error in kundali calculation: {str(e)}")
+        raise ValueError(f"Kundali calculation failed: {str(e)}")
 
 def calculate_transits(data: BirthData, tz_offset: float, date_time: Optional[datetime] = None, ayanamsa_type: Optional[str] = None) -> Dict:
-    if date_time is None:
-        date_time = datetime.now(timezone.utc)  # Use UTC for consistency
-    else:
-        # Convert transit_date to UTC if it's not
-        date_time = date_time - timedelta(hours=tz_offset)
-
-    # Compute Julian Day for the UTC time
+    """Calculate transit positions for a given date/time."""
     try:
-        jd = swe.julday(date_time.year, date_time.month, date_time.day, 
+        if date_time is None:
+            date_time = datetime.now(timezone.utc)
+        else:
+            # Convert transit_date to UTC if it's not
+            date_time = date_time - timedelta(hours=tz_offset)
+        # Convert transit time to Julian Day
+        jd = swe.julday(date_time.year, date_time.month, date_time.day,
                        date_time.hour + date_time.minute / 60.0 + date_time.second / 3600.0)
+        
+        # Get ayanamsa value
         ayanamsa = get_ayanamsa_value(jd, ayanamsa_type)
-
+        
         # Calculate planetary positions
         transits = calculate_planet_positions(data, jd, ayanamsa, ayanamsa_type)
-
+        
+        # Add timezone offset and transit date to result
         transits["tz_offset"] = tz_offset
         transits["transit_date"] = date_time.strftime("%Y-%m-%d %H:%M:%S")
-
+        
         return transits
-    except ValueError as e:
-        raise ValueError(f"Transit calculation failed: {str(e)}")
     except Exception as e:
-        raise ValueError(f"Unexpected error in transit calculation: {str(e)}")
+        raise ValueError(f"Transit calculation failed: {str(e)}")
