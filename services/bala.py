@@ -70,9 +70,9 @@ def calculate_sthana_bala(kundali_data: Dict, hora: Dict, drekkana: Dict, saptam
             
             # Saptavargaja Bala
             varga_signs = [
-                rasi_sign, hora[planet]["hora_sign"], drekkana[planet]["drekkana_sign"],
-                saptamsa[planet]["saptamsa_sign"], navamsa[planet]["navamsa_sign"],
-                dwadasamsa[planet]["dwadasamsa_sign"], trimsamsa[planet]["trimsamsa_sign"]
+                rasi_sign, hora[planet]["sign"], drekkana[planet]["sign"],
+                saptamsa[planet]["sign"], navamsa[planet]["sign"],
+                dwadasamsa[planet]["sign"], trimsamsa[planet]["sign"]
             ]
             total_points = 0
             for varga_sign in varga_signs:
@@ -103,7 +103,7 @@ def calculate_sthana_bala(kundali_data: Dict, hora: Dict, drekkana: Dict, saptam
             
             # Oja-Yugma Bala
             rasi_is_odd = rasi_sign_idx in odd_signs
-            navamsa_is_odd = ZODIAC_SIGNS.index(navamsa[planet]["navamsa_sign"]) in odd_signs
+            navamsa_is_odd = ZODIAC_SIGNS.index(navamsa[planet]["sign"]) in odd_signs
             oja_yugma_bala_shashtiamsha = 0
             if planet in male_planets:
                 if rasi_is_odd:

@@ -23,8 +23,8 @@ def calculate_hora(kundali_data: Dict) -> Dict:
         house_number = (hora_sign_idx - ascendant_sign_idx + 12) % 12 + 1
         
         hora_planets[planet] = {
-            "hora_sign": hora_sign,
-            "hora_sign_index": hora_sign_idx,
+            "sign": hora_sign,
+            "sign_index": hora_sign_idx,
             "house": house_number
         }
     return hora_planets
@@ -44,8 +44,8 @@ def calculate_drekkana(kundali_data: Dict) -> Dict:
         house_number = (sign_index - ascendant_sign_idx + 12) % 12 + 1
         
         drekkana_planets[planet] = {
-            "drekkana_sign": drekkana_sign,
-            "drekkana_sign_index": sign_index,
+            "sign": drekkana_sign,
+            "sign_index": sign_index,
             "house": house_number
         }
     return drekkana_planets
@@ -70,8 +70,8 @@ def calculate_saptamsa(kundali_data: Dict) -> Dict:
         house_number = (sign_index - ascendant_sign_idx + 12) % 12 + 1
         
         saptamsa_planets[planet] = {
-            "saptamsa_sign": saptamsa_sign,
-            "saptamsa_sign_index": sign_index,
+            "sign": saptamsa_sign,
+            "sign_index": sign_index,
             "house": house_number
         }
     return saptamsa_planets
@@ -102,8 +102,8 @@ def calculate_navamsa(kundali_data: Dict) -> Dict:
         house_number = (new_sign_idx - ascendant_sign_idx + 12) % 12 + 1
         
         navamsa_planets[planet] = {
-            "navamsa_sign": navamsa_sign,
-            "navamsa_sign_index": new_sign_idx,
+            "sign": navamsa_sign,
+            "sign_index": new_sign_idx,
             "house": house_number
         }
     return navamsa_planets
@@ -123,8 +123,8 @@ def calculate_dwadasamsa(kundali_data: Dict) -> Dict:
         house_number = (sign_index - ascendant_sign_idx + 12) % 12 + 1
         
         dwadasamsa_planets[planet] = {
-            "dwadasamsa_sign": dwadasamsa_sign,
-            "dwadasamsa_sign_index": sign_index,
+            "sign": dwadasamsa_sign,
+            "sign_index": sign_index,
             "house": house_number
         }
     return dwadasamsa_planets
@@ -159,8 +159,8 @@ def calculate_trimsamsa(kundali_data: Dict) -> Dict:
         house_number = (sign_index - ascendant_sign_idx + 12) % 12 + 1
         
         trimsamsa_planets[planet] = {
-            "trimsamsa_sign": trimsamsa_sign,
-            "trimsamsa_sign_index": sign_index,
+            "sign": trimsamsa_sign,
+            "sign_index": sign_index,
             "house": house_number
         }
     return trimsamsa_planets
