@@ -34,14 +34,21 @@ def calculate_planet_positions(data: BirthData, jd: float, ayanamsa: float, ayan
             "degrees_in_sign": float(sidereal_asc % 30),
             "degrees_in_sign_dms": decimal_to_dms(sidereal_asc % 30),
             "nakshatra": NAKSHATRAS[lagna_nakshatra_index],
-            "pada": int(lagna_pada)
+            "pada": int(lagna_pada),
+            "retrograde": "no"
         }
 
         for pid, name in planet_list:
-            flags = swe.FLG_SWIEPH
+            flags = swe.FLG_SWIEPH | swe.FLG_SPEED
             if pid == 10:  # True node for Rahu
                 flags |= swe.FLG_TRUEPOS
-            trop_longitude = swe.calc_ut(jd, pid, flags)[0][0]
+            
+            calc_result = swe.calc_ut(jd, pid, flags)
+            trop_longitude = calc_result[0][0]
+            longitude_speed = calc_result[0][3]
+
+            is_retrograde = "yes" if longitude_speed < 0 else "no"
+
             sid_longitude = (trop_longitude - ayanamsa) % 360
             sign_index = int(sid_longitude / 30)
             house_number = (sign_index - lagna_sign_index + 12) % 12 + 1
@@ -58,7 +65,8 @@ def calculate_planet_positions(data: BirthData, jd: float, ayanamsa: float, ayan
                 "degrees_in_sign": float(sid_longitude % 30),
                 "degrees_in_sign_dms": decimal_to_dms(sid_longitude % 30),
                 "nakshatra": nakshatra_name,
-                "pada": int(pada)
+                "pada": int(pada),
+                "retrograde": is_retrograde
             }
 
         # Compute Ketu (180° opposite Rahu)
@@ -75,8 +83,12 @@ def calculate_planet_positions(data: BirthData, jd: float, ayanamsa: float, ayan
             "degrees_in_sign": float(ketu_long % 30),
             "degrees_in_sign_dms": decimal_to_dms(ketu_long % 30),
             "nakshatra": NAKSHATRAS[ketu_nakshatra_index],
-            "pada": int(ketu_pada)
+            "pada": int(ketu_pada),
+            "retrograde": "yes"
         }
+
+        # Update Lagna with retrograde field (always "no")
+        planets["Lagna"]["retrograde"] = "no"
 
         return {
                 "ayanamsa": float(ayanamsa),
