@@ -13,11 +13,28 @@ from fastapi import HTTPException
 from utils import sanitize_birth_data
 
 def generate_chart(data: BirthData, tz_offset: float, transit_date: Optional[datetime], 
-                   ayanamsa_type: Optional[str], user_id: Optional[int], db) -> Dict:
+                   ayanamsa_type: Optional[str], user_id: Optional[int], 
+                   dasha_level: Optional[int] = 3, db = None) -> Dict:
     """
     Generate a complete astrological chart with kundali, divisional charts, dasha, transits, and bala.
+    
+    Args:
+        data (BirthData): Birth details including date, time, and location.
+        tz_offset (float): Timezone offset in hours.
+        transit_date (Optional[datetime]): Date for transit calculations.
+        ayanamsa_type (Optional[str]): Type of ayanamsa to use.
+        user_id (Optional[int]): User ID for saving the chart.
+        dasha_level (Optional[int]): Maximum level of sub-dashas to calculate (0-5).
+        db: Database session.
+        
+    Returns:
+        Dict: Complete chart data including kundali, dashas, transits, etc.
     """
     try:
+        # Validate dasha_level
+        if dasha_level is not None and (dasha_level < 0 or dasha_level > 5):
+            dasha_level = 5  # Default to full calculation if invalid
+        
         # Get both original and UTC-converted data
         birth_data_result = sanitize_birth_data(data, tz_offset)
         original_data = birth_data_result["original"]
@@ -35,7 +52,7 @@ def generate_chart(data: BirthData, tz_offset: float, transit_date: Optional[dat
         D9_navamsa = calculate_navamsa(kundali)
         D12_dwadasamsa = calculate_dwadasamsa(kundali)
         D30_trimsamsa = calculate_trimsamsa(kundali)
-        dasha = calculate_vimshottari_dasha(utc_data, kundali["planets"]["Moon"])
+        dasha = calculate_vimshottari_dasha(utc_data, kundali["planets"]["Moon"], max_level=dasha_level)
         transits = calculate_transits(utc_data, tz_offset, transit_date, ayanamsa_type)
         sthana_bala = calculate_sthana_bala(kundali, D2_hora, D3_drekkana, D7_saptamsa, D9_navamsa, D12_dwadasamsa, D30_trimsamsa)
         dig_bala = calculate_dig_bala(kundali)
@@ -44,6 +61,7 @@ def generate_chart(data: BirthData, tz_offset: float, transit_date: Optional[dat
         birth_data = original_data.dict()
         birth_data["tz_offset"] = tz_offset
         birth_data["ayanamsa_type"] = ayanamsa_type
+        birth_data["dasha_level"] = dasha_level
         
         # Structure the result
         result = {
@@ -64,9 +82,10 @@ def generate_chart(data: BirthData, tz_offset: float, transit_date: Optional[dat
         }
 
         # Save to database and attach chart_id and user_id
-        chart_id = save_chart(birth_data, result, user_id, db)
-        result["chart_id"] = chart_id
-        result["user_id"] = user_id
+        if db is not None:
+            chart_id = save_chart(birth_data, result, user_id, db)
+            result["chart_id"] = chart_id
+            result["user_id"] = user_id
 
         return result
     except ValueError as e:

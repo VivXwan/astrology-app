@@ -108,6 +108,7 @@ async def get_charts(
     tz_offset: Optional[float] = None,
     transit_date: Optional[datetime] = None,
     ayanamsa_type: Optional[str] = None,
+    dasha_level: Optional[int] = 3,
     current_user: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -118,7 +119,7 @@ async def get_charts(
         if tz_offset is None:
             tz_offset = get_timezone_offset(data.latitude, data.longitude)
             
-        result = generate_chart(data, tz_offset, transit_date, ayanamsa_type, current_user, db)
+        result = generate_chart(data, tz_offset, transit_date, ayanamsa_type, current_user, dasha_level, db)
         return result
     except ValueError as e:
         print(f"ValueError in chart generation: {str(e)}")
@@ -138,7 +139,7 @@ async def get_chart_by_id(chart_id: int, current_user: int = Depends(get_current
         
         chart_user_id = chart["user_id"]
 
-        if chart_user_id is not None and chart["user_id"] != current_user:
+        if chart_user_id is None or chart["user_id"] != current_user:
             raise HTTPException(status_code=403, detail="Chart doesn't exist")
         return chart
     except Exception as e:
