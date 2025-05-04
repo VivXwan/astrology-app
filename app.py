@@ -26,8 +26,7 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000").split(",
 
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=ALLOWED_ORIGINS,  # Specific origins instead of wildcard
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,  # Specific origins instead of wildcard
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],

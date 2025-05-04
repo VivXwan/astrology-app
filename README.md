@@ -40,7 +40,7 @@ A comprehensive Vedic astrology API that provides accurate birth chart calculati
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/vedic-astrology-app.git
+   git clone https://github.com/VivXwan/vedic-astrology-app.git
    cd vedic-astrology-app
    ```
 

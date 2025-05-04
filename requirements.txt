@@ -9,7 +9,7 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 httpx==0.25.2
-swisseph==2.10.03
+swisseph==0.0.0.dev1
 redis==5.0.1
 timezonefinder==6.5.9
 pytz==2025.2
