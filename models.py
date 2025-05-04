@@ -81,7 +81,9 @@ class LoginData(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+    expires_in: int = 3600  # 1 hour in seconds
 
 class LocationData(BaseModel):
     latitude: float
@@ -101,3 +103,6 @@ class GeocodeRequest(BaseModel):
 class GeocodeResponse(BaseModel):
     locations: list[LocationData]
     total_results: int
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str

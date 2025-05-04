@@ -1,12 +1,14 @@
 # db.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from db_models import Base, Chart, User
+from db_models import Base, Chart, User, RefreshToken
 from sqlalchemy.exc import IntegrityError, OperationalError
 from fastapi import HTTPException, Depends
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 import os
+import secrets
+from datetime import datetime, timedelta, timezone
 
 load_dotenv()
 
@@ -20,7 +22,7 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set")
 
 engine = create_engine(DATABASE_URL)
-Base.metadata.create_all(engine)  # Create tables if they don’t exist
+Base.metadata.create_all(engine)  # Create tables if they don't exist
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Dependency to provide a session
@@ -100,3 +102,66 @@ def get_chart(chart_id: int, db: Session = Depends(get_db)) -> dict:
         return None
     except OperationalError as e:
         raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
+
+def create_refresh_token(user_id: int, db: Session, expires_delta: timedelta = timedelta(days=30)) -> str:
+    """
+    Create a new refresh token for a user and store it in the database.
+    """
+    try:
+        # Generate a secure random token
+        token = secrets.token_hex(32)
+        expires_at = datetime.now(timezone.utc) + expires_delta
+        
+        # Create new refresh token entry
+        refresh_token = RefreshToken(
+            user_id=user_id,
+            token=token,
+            expires_at=expires_at
+        )
+        
+        # Save to database
+        db.add(refresh_token)
+        db.commit()
+        
+        return token
+    except Exception as e:
+        db.rollback()
+        # Use generic error message to avoid exposing implementation details
+        raise HTTPException(status_code=500, detail="Error creating refresh token")
+
+def validate_refresh_token(token: str, db: Session) -> int:
+    """
+    Validate a refresh token and return the associated user_id if valid.
+    """
+    try:
+        refresh_token = db.query(RefreshToken).filter(
+            RefreshToken.token == token,
+            RefreshToken.is_revoked == False,
+            RefreshToken.expires_at > datetime.now(timezone.utc)
+        ).first()
+        
+        if not refresh_token:
+            raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        
+        return refresh_token.user_id
+    except HTTPException:
+        raise
+    except Exception:
+        # Use generic error message to avoid exposing implementation details
+        raise HTTPException(status_code=500, detail="Error validating refresh token")
+
+def revoke_refresh_token(token: str, db: Session) -> bool:
+    """
+    Revoke a refresh token (mark it as invalid).
+    """
+    try:
+        refresh_token = db.query(RefreshToken).filter(RefreshToken.token == token).first()
+        if refresh_token:
+            refresh_token.is_revoked = True
+            db.commit()
+            return True
+        return False
+    except Exception:
+        db.rollback()
+        # Use generic error message to avoid exposing implementation details
+        raise HTTPException(status_code=500, detail="Error revoking refresh token")
