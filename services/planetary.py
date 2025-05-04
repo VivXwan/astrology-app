@@ -1,4 +1,4 @@
-import swisseph as swe
+from compatibility import swe
 from typing import Dict, Optional
 from datetime import datetime, timezone, timedelta
 from models import BirthData

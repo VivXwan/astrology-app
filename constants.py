@@ -1,4 +1,4 @@
-import swisseph as swe
+from compatibility import swe
 swe.set_ephe_path('./ephe')
 
 ZODIAC_SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]

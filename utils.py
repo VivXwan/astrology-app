@@ -1,6 +1,6 @@
 # utils.py
 from fastapi import HTTPException
-import swisseph as swe
+from compatibility import swe
 from typing import Optional
 from constants import AYANAMSA_TYPES
 from models import BirthData
