@@ -6,11 +6,11 @@ then falls back to swisseph (placeholder) if needed.
 
 try:
     import pyswisseph as swe
-    print("Successfully loaded pyswisseph library")
+    # print("Successfully loaded pyswisseph library")
     USING_PYSWISSEPH = True
 except ImportError:
     import swisseph as swe
-    print("Falling back to swisseph placeholder library")
+    # print("Falling back to swisseph placeholder library")
     USING_PYSWISSEPH = False
 
 # Export the swe module for use by other modules

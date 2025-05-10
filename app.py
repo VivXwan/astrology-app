@@ -7,9 +7,9 @@ import os
 import httpx
 from typing import Dict, Optional, List
 from datetime import datetime, timedelta, timezone
-from models import BirthData, UserData, LoginData, TokenResponse, GeocodeRequest, GeocodeResponse, RefreshTokenRequest
+from models import BirthData, UserData, LoginData, TokenResponse, GeocodeRequest, GeocodeResponse, RefreshTokenRequest, ChartResponse
 from services.chart import generate_chart
-from db import save_chart, get_chart, create_user, get_user_by_email, get_db, create_refresh_token, validate_refresh_token, revoke_refresh_token
+from db import save_chart, get_chart, create_user, get_user_by_email, get_db, create_refresh_token, validate_refresh_token, revoke_refresh_token, get_charts_by_user_id
 from passlib.context import CryptContext
 import jwt
 from jwt import PyJWTError, DecodeError, ExpiredSignatureError
@@ -211,6 +211,23 @@ async def logout(data: RefreshTokenRequest, db: Session = Depends(get_db)):
     except Exception:
         # Generic error to avoid exposing implementation details
         raise HTTPException(status_code=500, detail="Error during logout")
+
+@app.get("/users/me/charts", response_model=List[ChartResponse])
+async def get_my_charts(current_user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user_id is None: # Check if token was provided and valid, resulting in a user_id
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Please include a valid Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        charts = get_charts_by_user_id(user_id=current_user_id, db=db)
+        return charts
+    except HTTPException as e:
+        raise e # Re-raise known HTTP exceptions from the db layer
+    except Exception as e:
+        # Log error e in a real application
+        raise HTTPException(status_code=500, detail="An unexpected error occurred while retrieving charts.")
 
 @app.post("/charts", response_model=Dict)
 async def get_charts(

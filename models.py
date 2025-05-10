@@ -1,6 +1,7 @@
 # models.py
 from pydantic import BaseModel, validator, EmailStr
 from datetime import datetime
+from typing import Optional
 
 class BirthData(BaseModel):
     year: int
@@ -106,3 +107,9 @@ class GeocodeResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+class ChartResponse(BaseModel):
+    chart_id: int
+    user_id: Optional[int]
+    birth_data: dict # Essential summary information
+    created_at: datetime

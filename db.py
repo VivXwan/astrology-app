@@ -9,17 +9,20 @@ from dotenv import load_dotenv
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import List, Dict
+from models import ChartResponse
 
 load_dotenv()
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# PostgreSQL connection string (adjust user, host, port if needed)
-# DATABASE_URL = "postgresql://postgres:123@localhost:5432/astrologyDB"\
+# Get database URL from environment with fallback
 DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
+
+# Fix for SQLAlchemy - convert postgres:// to postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)  # Create tables if they don't exist
@@ -102,6 +105,27 @@ def get_chart(chart_id: int, db: Session = Depends(get_db)) -> dict:
         return None
     except OperationalError as e:
         raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
+
+def get_charts_by_user_id(user_id: int, db: Session) -> List[ChartResponse]:
+    """
+    Retrieve all charts for a given user_id, ordered by creation date.
+    """
+    try:
+        charts_db = db.query(Chart).filter(Chart.user_id == user_id).order_by(Chart.created_at.desc()).all()
+        return [
+            ChartResponse(
+                chart_id=chart.chart_id,
+                user_id=chart.user_id,
+                birth_data=chart.birth_data,
+                created_at=chart.created_at
+            ) for chart in charts_db
+        ]
+    except OperationalError as e:
+        db.rollback()
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error retrieving charts")
 
 def create_refresh_token(user_id: int, db: Session, expires_delta: timedelta = timedelta(days=30)) -> str:
     """
